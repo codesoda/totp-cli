@@ -1,0 +1,15 @@
+[package]
+name = "totp"
+version = "0.1.0"
+edition = "2021"
+description = "Dead simple TOTP code generator"
+license = "MIT"
+
+[dependencies]
+hmac = "0.12"
+sha1 = "0.10"
+data-encoding = "2"
+
+[profile.release]
+strip = true
+lto = true
