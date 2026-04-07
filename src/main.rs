@@ -3,7 +3,8 @@ use hmac::{Hmac, Mac};
 use sha1::Sha1;
 use std::env;
 use std::process;
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::thread;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 type HmacSha1 = Hmac<Sha1>;
 
@@ -68,12 +69,27 @@ fn main() {
         .expect("time went backwards")
         .as_secs();
 
-    let time_step = now / 30;
     let seconds_remaining = 30 - (now % 30);
+
+    // If code would expire in <15s, wait for a fresh one
+    let (time_step, seconds_remaining) = if seconds_remaining < 15 {
+        eprintln!(
+            "\x1b[2mcode expires in {}s, waiting for fresh code...\x1b[0m",
+            seconds_remaining
+        );
+        thread::sleep(Duration::from_secs(seconds_remaining));
+        let fresh_now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("time went backwards")
+            .as_secs();
+        (fresh_now / 30, 30 - (fresh_now % 30))
+    } else {
+        (now / 30, seconds_remaining)
+    };
 
     let code = totp(&secret_bytes, time_step);
     println!("{:06}", code);
 
-    // Show expiry in light grey (ANSI dim)
-    println!("\x1b[2mexpires in {}s\x1b[0m", seconds_remaining);
+    // Show expiry on stderr so agents can cleanly parse stdout
+    eprintln!("\x1b[2mexpires in {}s\x1b[0m", seconds_remaining);
 }
