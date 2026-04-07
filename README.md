@@ -2,6 +2,8 @@
 
 Dead simple TOTP code generator. No config, no dependencies, no fuss — just pass a secret and get a code.
 
+Designed for automated agent sessions: pass a secret directly or reference a `$ENV_VAR` by name. If the current code would expire in under 15 seconds, `totp` waits for the next window and returns a fresh code with maximum validity. The 6-digit code is printed to stdout with all status info on stderr, so `$(totp $SECRET)` always gives you a clean, ready-to-use token.
+
 ## Usage
 
 ```bash
