@@ -89,7 +89,24 @@ jobs:
       - name: Generate checksums
         run: |
           cd artifacts
-          sha256sum *.tar.gz > SHA256SUMS
+          sha256sum *.tar.gz > checksums-sha256.txt
+
+      - name: Extract changelog for release
+        run: |
+          tag="${GITHUB_REF_NAME}"
+          version="${tag#v}"
+          notes=$(awk -v ver="$version" '
+            /^## \[/ {
+              if (found) exit
+              if ($0 ~ "\\[" ver "\\]") found=1; next
+            }
+            found { print }
+          ' CHANGELOG.md)
+          if [ -z "$notes" ]; then
+            echo "::error::No CHANGELOG.md entry found for version ${version}"
+            exit 1
+          fi
+          echo "$notes" > release-notes.md
 
       - name: Create GitHub release
         env:
@@ -97,6 +114,7 @@ jobs:
         run: |
           gh release create "$GITHUB_REF_NAME" \
             --title "$GITHUB_REF_NAME" \
-            --generate-notes \
+            --notes-file release-notes.md \
             --draft \
-            artifacts/*
+            artifacts/*.tar.gz \
+            artifacts/checksums-sha256.txt
